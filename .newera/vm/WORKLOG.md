@@ -24,3 +24,4 @@ Durable session memory for this VM job chain. Each line is one step or wind-down
 - [2026-10-19T11:49:55.771Z | VM 1/3] VERIFIED green: cd "$(pwd)" && npx vitest run 2>&1 | grep -E 'Test Files|Tests ' | tail -5
 - [2026-10-19T11:50:17.553Z | VM 1/3] VERIFIED green: cd "$(pwd)" && npx tsc --noEmit; echo "TSC=$?"; npm run build 2>&1 | tail -30
 - [2026-10-19T11:50:38.368Z | VM 1/3] VERIFIED green: cd "$(pwd)" && npx tsc --noEmit; echo "TSC=$?"; echo '=== out ==='; ls out/ 2>&1 | head; echo '=== sw/manifest ==='; ls -la out/sw.js out/manifest.webmanifest o
+- [2026-10-19T11:55:40.228Z | VM 1/3] VERIFIED green: ls src/lib/__tests__/; echo '=== sw ==='; head -20 public/sw.js 2>/dev/null; echo '=== reg ==='; grep -rn 'serviceWorker' src/ --include=*.tsx --include=*.ts | 
