@@ -126,8 +126,10 @@ export function fromXfdf(text: string): Record<string, string> {
   const out: Record<string, string> = {};
   const re = /<field\s+name="([^"]+)"\s*>\s*<value>([^<]*)<\/value>\s*<\/field>/g;
   let m: RegExpExecArray | null;
+  const unesc = (s: string) =>
+    s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
   while ((m = re.exec(text))) {
-    out[m[1]] = m[2].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+    out[unesc(m[1])] = unesc(m[2]);
   }
   return out;
 }

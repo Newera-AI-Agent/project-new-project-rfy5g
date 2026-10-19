@@ -75,12 +75,16 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, wait = 300) 
 export function isEditableTarget(el: EventTarget | null): boolean {
   if (!el || !(el instanceof HTMLElement)) return false;
   const tag = el.tagName.toLowerCase();
-  return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  if (el.isContentEditable) return true;
+  const attr = el.getAttribute?.("contenteditable");
+  return attr === "" || attr === "true" || attr === "plaintext-only";
 }
 
 export function pageDims(page: { width?: number; height?: number }, fallbackW = 612, fallbackH = 792) {
   const w = page.width || fallbackW;
   const h = page.height || fallbackH;
-  const rotated = (page as any).rotation % 180 !== 0;
+  const rotation = Number((page as any).rotation) || 0;
+  const rotated = rotation % 180 !== 0;
   return rotated ? { w: h, h: w } : { w, h };
 }

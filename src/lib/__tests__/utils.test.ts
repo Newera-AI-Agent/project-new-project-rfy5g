@@ -95,7 +95,7 @@ describe("isEditableTarget", () => {
     const input = document.createElement("input");
     expect(isEditableTarget(input)).toBe(true);
     const div = document.createElement("div");
-    div.contentEditable = "true";
+    div.setAttribute("contenteditable", "true");
     document.body.appendChild(div);
     expect(isEditableTarget(div)).toBe(true);
     expect(isEditableTarget(document.createElement("span"))).toBe(false);
