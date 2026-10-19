@@ -200,12 +200,24 @@ function GridThumb({ docId, index }: { docId: string; index: number }) {
         const doc = st.docs[docId];
         if (!doc) return;
         const { getPdfjs, renderPageToDataUrl } = await import("@/lib/pdfEngine");
+        const meta = doc.pages[index];
+        if (meta.blank) {
+          const w = meta.width ?? 612;
+          const h = meta.height ?? 792;
+          const svg =
+            `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w)}" height="${Math.round(h)}">` +
+            `<rect width="100%" height="100%" fill="#ffffff"/></svg>`;
+          if (!cancel) setUrl("data:image/svg+xml;base64," + btoa(svg));
+          return;
+        }
         const pdfjs = await getPdfjs();
         const pdf = await pdfjs.getDocument({ data: doc.bytes.slice(0) }).promise;
-        const meta = doc.pages[index];
-        const page = await pdf.getPage((meta.blank ? 1 : meta.srcIndex) + 1);
-        const vp = page.getViewport({ scale: 0.28, rotation: meta.rotation });
-        const dataUrl = await renderPageToDataUrl(pdf, meta.blank ? 1 : meta.srcIndex + 1, vp.width);
+        const dataUrl = await renderPageToDataUrl(pdf, meta.srcIndex + 1, {
+          scale: 0.28,
+          rotation: meta.rotation,
+          crop: meta.crop,
+          type: "image/png",
+        });
         if (!cancel) setUrl(dataUrl);
         await pdf.destroy();
       } catch {
