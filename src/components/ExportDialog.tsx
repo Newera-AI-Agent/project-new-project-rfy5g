@@ -12,7 +12,7 @@ type Format = "pdf" | "png" | "jpeg" | "svg" | "txt";
 
 /** Export to PDF / PNG / JPEG / SVG / text, plus print & native share (req 19, 31, 46, 49, 50, 54). */
 export default function ExportDialog() {
-  const { open, payload } = useDialog("export");
+  const { open, payload } = useDialog("export") as { open: boolean; payload: { pageIndex?: number } | null };
   const doc = useStore((s) => (s.activeId ? s.docs[s.activeId] : undefined));
   const toast = useStore((s) => s.toast);
   const setBusy = useStore((s) => s.setBusy);
@@ -67,7 +67,7 @@ export default function ExportDialog() {
           const wanted = !selectedForExport || selectedForExport.has(doc.pages.indexOf(meta));
           if (!wanted) continue;
           const page = await pdf.getPage(meta.srcIndex + 1);
-          parts.push(`— Page ${doc.pages.indexOf(meta) + 1} —\n` + (await getPageTextString(page)));
+          parts.push(`— Page ${doc.pages.indexOf(meta) + 1} —\n` + (await getPageTextString(pdf, meta.srcIndex + 1)));
         }
         await pdf.destroy();
         downloadBlob(`${baseName}.txt`, new Blob([parts.join("\n\n")], { type: "text/plain" }));

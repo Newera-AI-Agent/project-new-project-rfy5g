@@ -41,7 +41,7 @@ export function intersectRect(a: { x: number; y: number; w: number; h: number },
 
 export const STAMP_TEMPLATES = ["Approved", "Draft", "Confidential", "Reviewed", "Paid", "Void", "Received"];
 
-export function downloadBlob(blob: Blob, filename: string) {
+export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

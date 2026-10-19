@@ -88,20 +88,20 @@ export default function Toolbar() {
       setBusy("Opening " + files.length + " file(s)…");
       for (const f of files) {
         try {
-          const bytes = new Uint8Array(await f.file.arrayBuffer());
-          const { doc } = await loadBytesToDoc(f.file.name, bytes);
+          const bytes = new Uint8Array(await f.arrayBuffer());
+          const { doc } = await loadBytesToDoc(f.name, bytes);
           addDoc(doc);
-          addRecent(f.file.name);
+          addRecent(f.name);
         } catch (e: any) {
           if (String(e?.message) === "PDF_PASSWORD_REQUIRED") {
-            const pw = window.prompt("Password for " + f.file.name);
+            const pw = window.prompt("Password for " + f.name);
             if (pw) {
-              const bytes = new Uint8Array(await f.file.arrayBuffer());
-              const { doc } = await loadBytesToDoc(f.file.name, bytes, pw);
+              const bytes = new Uint8Array(await f.arrayBuffer());
+              const { doc } = await loadBytesToDoc(f.name, bytes, pw);
               addDoc(doc);
             }
           } else {
-            toast("Could not open " + f.file.name, "error");
+            toast("Could not open " + f.name, "error");
           }
         }
       }

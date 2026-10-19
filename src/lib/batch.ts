@@ -125,7 +125,7 @@ async function rasterizePdf(src: PdfDoc, quality: number): Promise<ArrayBuffer |
       jpgPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
     }
     await pdf.destroy();
-    return out.save({ useObjectStreams: true });
+    return bytesOf(await out.save({ useObjectStreams: true }));
   } catch (err) {
     console.warn("rasterize failed", err);
     return null;
