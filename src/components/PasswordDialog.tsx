@@ -41,7 +41,7 @@ export default function PasswordDialog() {
   if (!open || !doc) return null;
 
   async function protect() {
-    if (!activeId) return;
+    if (!activeId || !doc) return;
     if (!user) {
       toast("Enter a password to protect this document", "error");
       return;
