@@ -52,6 +52,31 @@ export async function loadPdf(bytes: ArrayBuffer, password?: string): Promise<Lo
   return { pdf, numPages: pdf.numPages, outline, fields, encrypted: false };
 }
 
+// Cache parsed pdf.js documents by key so scroll/zoom does not re-parse the file.
+const docCache = new Map<string, Promise<any>>();
+
+export function getCachedDoc(key: string, bytes: Uint8Array): Promise<any> {
+  let p = docCache.get(key);
+  if (!p) {
+    p = getPdfjs().then((pdfjs: any) =>
+      pdfjs.getDocument({
+        data: bytes.slice(0),
+        isEvalSupported: false,
+        useSystemFonts: true,
+      }).promise,
+    );
+    p.catch(() => docCache.delete(key));
+    docCache.set(key, p);
+  }
+  return p;
+}
+
+export function dropCachedDoc(key: string) {
+  const p = docCache.get(key);
+  docCache.delete(key);
+  if (p) p.then((d: any) => d?.destroy?.()).catch(() => {});
+}
+
 export interface RenderResult {
   width: number;
   height: number;

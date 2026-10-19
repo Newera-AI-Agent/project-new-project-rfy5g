@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/store/useStore";
 import AnnotationLayer from "@/components/AnnotationLayer";
-import { renderPage } from "@/lib/pdfEngine";
+import { renderPage, getCachedDoc } from "@/lib/pdfEngine";
 import type { PdfDoc } from "@/lib/types";
 
 interface Props {
@@ -193,20 +193,17 @@ function PageView({ doc, index, zoom }: { doc: PdfDoc; index: number; zoom: numb
       }
       try {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        const { pdf, page } = await renderPage(doc.bytes.slice(0), meta.srcIndex + 1, {
-          scale: zoom * dpr,
+        const pdf = await getCachedDoc(doc.id, doc.bytes);
+        if (cancelled) return;
+        const res = await renderPage(pdf, meta.srcIndex + 1, canvasRef.current!, {
+          scale: zoom,
           rotation: meta.rotation,
-          canvas: canvasRef.current!,
+          dpr,
           crop: meta.crop ? { x: meta.crop.x, y: meta.crop.y, w: meta.crop.w, h: meta.crop.h } : undefined,
         });
-        if (cancelled) {
-          await pdf.destroy();
-          return;
-        }
-        const vp = page.getViewport({ scale: 1, rotation: meta.rotation });
-        setSize({ w: vp.width, h: vp.height });
+        if (cancelled) return;
+        setSize({ w: res.width, h: res.height });
         setRendered(true);
-        await pdf.destroy();
       } catch {
         /* ignore */
       }
