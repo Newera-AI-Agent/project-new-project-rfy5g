@@ -1,0 +1,24 @@
+{
+  "code": "peuxkg5ywn88",
+  "jobId": "vm-mvf3jxt6-6bt85z9y",
+  "relayIndex": 0,
+  "maxMinutes": 240,
+  "state": "running",
+  "step": 11,
+  "minutesLeft": 232,
+  "todoOpen": 11,
+  "updatedAt": "2026-10-19T10:16:05.124Z",
+  "byok": {
+    "active": true,
+    "source": "mixed",
+    "roles": {
+      "steps": "byok",
+      "subagent": "byok",
+      "summarize": "byok",
+      "repair": "byok",
+      "consult": "byok",
+      "vision": "byok",
+      "image": "admin"
+    }
+  }
+}
