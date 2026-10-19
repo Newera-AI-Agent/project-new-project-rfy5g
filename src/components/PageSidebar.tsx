@@ -98,10 +98,7 @@ export default function PageSidebar() {
     if (!positions.length) return;
     setBusy("Extracting pages…");
     try {
-      const bytes = await extractRange(
-        { id: doc.id, name: doc.name, bytes: doc.bytes, pages: doc.pages } as any,
-        positions,
-      );
+      const bytes = await extractRange(doc, positions);
       const { doc: newDoc } = await loadBytesToDoc(
         doc.name.replace(/\.pdf$/i, "") + "-extract.pdf",
         bytes,
