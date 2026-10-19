@@ -167,10 +167,10 @@ function PageView({ doc, index, zoom }: { doc: PdfDoc; index: number; zoom: numb
   const renderTask = useRef<any>(null);
 
   const rotated = meta.rotation % 180 !== 0;
-  const baseW = rotated ? meta.height : meta.width;
-  const baseH = rotated ? meta.width : meta.height;
-  const cssW = (meta.crop ? baseW * meta.crop.w : baseW) || baseW;
-  const cssH = (meta.crop ? baseH * meta.crop.h : baseH) || baseH;
+  const baseW: number = (rotated ? meta.height : meta.width) ?? (rotated ? 792 : 612);
+  const baseH: number = (rotated ? meta.width : meta.height) ?? (rotated ? 612 : 792);
+  const cssW: number = meta.crop ? baseW * meta.crop.w : baseW;
+  const cssH: number = meta.crop ? baseH * meta.crop.h : baseH;
 
   useEffect(() => {
     let cancelled = false;

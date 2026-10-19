@@ -55,7 +55,7 @@ export async function loadPdf(bytes: ArrayBuffer, password?: string): Promise<Lo
 // Cache parsed pdf.js documents by key so scroll/zoom does not re-parse the file.
 const docCache = new Map<string, Promise<any>>();
 
-export function getCachedDoc(key: string, bytes: Uint8Array): Promise<any> {
+export function getCachedDoc(key: string, bytes: Uint8Array | ArrayBuffer): Promise<any> {
   let p = docCache.get(key);
   if (!p) {
     p = getPdfjs().then((pdfjs: any) =>

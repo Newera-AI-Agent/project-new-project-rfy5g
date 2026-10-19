@@ -46,7 +46,7 @@ export async function loadBytesToDoc(name: string, bytes: Uint8Array, password?:
   const doc: PdfDoc = {
     id: uid("doc"),
     name,
-    bytes,
+    bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
     size: bytes.byteLength,
     pageCount,
     pages,
