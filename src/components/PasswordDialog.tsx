@@ -68,7 +68,7 @@ export default function PasswordDialog() {
   }
 
   async function unprotect() {
-    if (!activeId) return;
+    if (!activeId || !doc) return;
     setLocalBusy(true);
     setBusy("password");
     try {
