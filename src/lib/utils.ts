@@ -81,10 +81,14 @@ export function isEditableTarget(el: EventTarget | null): boolean {
   return attr === "" || attr === "true" || attr === "plaintext-only";
 }
 
-export function pageDims(page: { width?: number; height?: number }, fallbackW = 612, fallbackH = 792) {
+export function pageDims(
+  page: { width?: number; height?: number; rotation?: number },
+  fallbackW = 612,
+  fallbackH = 792,
+) {
   const w = page.width || fallbackW;
   const h = page.height || fallbackH;
-  const rotation = Number((page as any).rotation) || 0;
+  const rotation = Number(page.rotation) || 0;
   const rotated = rotation % 180 !== 0;
   return rotated ? { w: h, h: w } : { w, h };
 }
