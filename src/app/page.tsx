@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 
+import PwaRegister from "@/components/PwaRegister";
+
 const AppShell = dynamic(() => import("@/components/AppShell"), {
   ssr: false,
   loading: () => (
@@ -15,5 +17,10 @@ const AppShell = dynamic(() => import("@/components/AppShell"), {
 });
 
 export default function Page() {
-  return <AppShell />;
+  return (
+    <>
+      <PwaRegister />
+      <AppShell />
+    </>
+  );
 }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://newera-pdfeditz.pages.dev"),
   title: "PdfEditz — Client-Side PDF Editor",
   description:
     "A 100% client-side, mobile-first PDF editor. Edit, annotate, merge, split, sign, redact, compress and export PDFs without your files ever leaving the browser.",

@@ -1,0 +1,25 @@
+{
+  "name": "PdfEditz — Client-Side PDF Editor",
+  "short_name": "PdfEditz",
+  "description": "A 100% client-side, mobile-first PDF editor. Edit, annotate, merge, split, sign, redact, compress and export PDFs without your files ever leaving the browser.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#2563eb",
+  "categories": ["productivity", "utilities", "business"],
+  "dir": "ltr",
+  "lang": "en",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Open PDFs", "url": "/?action=open" },
+    { "name": "Merge PDFs", "url": "/?action=merge" }
+  ]
+}
