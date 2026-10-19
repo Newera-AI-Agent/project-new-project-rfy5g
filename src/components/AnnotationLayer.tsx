@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@/store/useStore";
-import type { Annotation, Rect, ToolId } from "@/lib/types";
+import type { Annotation, NoteAnno, Rect, TextAnno, ToolId } from "@/lib/types";
 import { clamp, cn, haptic, normRect, uid } from "@/lib/utils";
 import { getPendingAsset, subscribePendingAsset, type PendingAsset } from "@/lib/assetBus";
 import { pushHistory } from "@/hooks/useKeyboardShortcuts";
@@ -469,3 +469,349 @@ function hasArea(a: Annotation) {
 }
 
 export { AnnotationLayer };
+
+// ---------------------------------------------------------------------------
+// SVG renderer for vector / raster annotations (everything except note & text).
+// ---------------------------------------------------------------------------
+function AnnoSvg({
+  a,
+  width,
+  height,
+  zoom,
+}: {
+  a: Annotation;
+  width: number;
+  height: number;
+  zoom: number;
+}) {
+  const px = (v: number) => v * width;
+  const py = (v: number) => v * height;
+  const sw = (n: number) => Math.max(1, n * zoom);
+
+  if (
+    a.kind === "highlight" ||
+    a.kind === "underline" ||
+    a.kind === "strike" ||
+    a.kind === "squiggly" ||
+    a.kind === "redact"
+  ) {
+    return (
+      <g>
+        {a.rects.map((r, i) => {
+          const x = px(r.x);
+          const y = py(r.y);
+          const w = Math.max(1, px(r.w));
+          const h = Math.max(1, py(r.h));
+          if (a.kind === "highlight")
+            return <rect key={i} x={x} y={y} width={w} height={h} rx={2} fill={a.color} opacity={a.opacity} />;
+          if (a.kind === "redact")
+            return <rect key={i} x={x} y={y} width={w} height={h} fill="#000000" opacity={a.applied ? 1 : 0.9} />;
+          if (a.kind === "squiggly") {
+            const step = 5;
+            const pts: string[] = [];
+            for (let sx = 0; sx <= w; sx += step)
+              pts.push(`${sx},${(Math.sin((sx / step) * Math.PI) * 1.5).toFixed(2)}`);
+            return (
+              <polyline
+                key={i}
+                points={pts.join(" ")}
+                transform={`translate(${x},${y + h * 0.92})`}
+                fill="none"
+                stroke={a.color}
+                strokeWidth={sw(1.6)}
+              />
+            );
+          }
+          const yy = a.kind === "strike" ? y + h * 0.55 : y + h * 0.95;
+          return (
+            <line key={i} x1={x} y1={yy} x2={x + w} y2={yy} stroke={a.color} strokeWidth={sw(2)} />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (a.kind === "rect") {
+    return (
+      <rect
+        x={px(a.rect.x)}
+        y={py(a.rect.y)}
+        width={Math.max(1, px(a.rect.w))}
+        height={Math.max(1, py(a.rect.h))}
+        rx={3}
+        fill={a.fill === "none" ? "none" : a.fill}
+        stroke={a.stroke}
+        strokeWidth={sw(a.strokeWidth)}
+        opacity={a.opacity}
+      />
+    );
+  }
+
+  if (a.kind === "ellipse") {
+    return (
+      <ellipse
+        cx={px(a.rect.x + a.rect.w / 2)}
+        cy={py(a.rect.y + a.rect.h / 2)}
+        rx={Math.max(1, px(a.rect.w / 2))}
+        ry={Math.max(1, py(a.rect.h / 2))}
+        fill={a.fill === "none" ? "none" : a.fill}
+        stroke={a.stroke}
+        strokeWidth={sw(a.strokeWidth)}
+        opacity={a.opacity}
+      />
+    );
+  }
+
+  if (a.kind === "line" || a.kind === "arrow") {
+    const x1 = px(a.x1);
+    const y1 = py(a.y1);
+    const x2 = px(a.x2);
+    const y2 = py(a.y2);
+    return (
+      <g>
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={a.stroke} strokeWidth={sw(a.strokeWidth)} opacity={a.opacity} />
+        {a.kind === "arrow" && (
+          <polygon
+            points={`0,0 ${-9 - a.strokeWidth},${-4 - a.strokeWidth / 2} ${-9 - a.strokeWidth},${4 + a.strokeWidth / 2}`}
+            transform={`translate(${x2},${y2}) rotate(${(Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI})`}
+            fill={a.stroke}
+            opacity={a.opacity}
+          />
+        )}
+      </g>
+    );
+  }
+
+  if (a.kind === "draw") {
+    const d = a.paths
+      .map((path) => {
+        if (!path.length) return "";
+        const head = `M ${px(path[0].x)} ${py(path[0].y)}`;
+        const rest = path.slice(1).map((q) => `L ${px(q.x)} ${py(q.y)}`).join(" ");
+        return `${head} ${rest}`;
+      })
+      .join(" ");
+    return (
+      <path d={d} fill="none" stroke={a.color} strokeWidth={sw(a.strokeWidth)} opacity={a.opacity} strokeLinecap="round" strokeLinejoin="round" />
+    );
+  }
+
+  if (a.kind !== "image" && a.kind !== "stamp") return null;
+
+  // image | stamp
+  const w = Math.max(1, px(a.rect.w));
+  const h = Math.max(1, py(a.rect.h));
+  return (
+    <g opacity={a.opacity} transform={`rotate(${a.rotation || 0} ${px(a.rect.x) + w / 2} ${py(a.rect.y) + h / 2})`}>
+      <image href={a.src} x={px(a.rect.x)} y={py(a.rect.y)} width={w} height={h} preserveAspectRatio="none" />
+    </g>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sticky-note marker (HTML, so it can host threaded replies).
+// ---------------------------------------------------------------------------
+function NoteMarker({
+  docId,
+  a,
+  x,
+  y,
+  selected,
+  onSelect,
+  onDelete,
+  onMove,
+}: {
+  docId: string;
+  a: NoteAnno;
+  x: number;
+  y: number;
+  selected: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onMove: (dx: number, dy: number) => void;
+}) {
+  const updateAnnotation = useStore((s) => s.updateAnnotation);
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState(a.body);
+  const [reply, setReply] = useState("");
+  const dragRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
+
+  useEffect(() => setBody(a.body), [a.body]);
+
+  return (
+    <div className="absolute" style={{ left: x, top: y, zIndex: 30 }}>
+      <button
+        aria-label="Open comment"
+        className={cn(
+          "flex h-6 w-6 -translate-x-1 -translate-y-1 items-center justify-center rounded-full text-[11px] font-bold text-white shadow-md",
+          selected && "ring-2 ring-white",
+        )}
+        style={{ background: a.color }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          dragRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          const d = dragRef.current;
+          if (!d) return;
+          const dx = e.clientX - d.startX;
+          const dy = e.clientY - d.startY;
+          if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
+        }}
+        onPointerUp={(e) => {
+          const d = dragRef.current;
+          dragRef.current = null;
+          if (d && d.moved) {
+            onMove((e.clientX - d.startX) / 1000, (e.clientY - d.startY) / 1000);
+            haptic(8);
+          } else {
+            onSelect();
+            setOpen((o) => !o);
+          }
+        }}
+      >
+        {a.replies.length + 1}
+      </button>
+
+      {open && (
+        <div className="absolute left-7 top-0 w-64 rounded-xl border border-line surface p-3 text-sm shadow-2xl">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs font-semibold">{a.author}</span>
+            <button className="text-xs opacity-60 hover:opacity-100" onClick={() => setOpen(false)} aria-label="Close">
+              ✕
+            </button>
+          </div>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onBlur={() => updateAnnotation(docId, a.id, { body } as Partial<Annotation>)}
+            rows={3}
+            placeholder="Add a comment…"
+            className="w-full resize-none rounded-lg border border-line bg-transparent p-2 text-sm outline-none"
+          />
+          {a.replies.map((r) => (
+            <div key={r.id} className="mt-2 rounded-lg border border-line p-2 text-xs opacity-80">
+              <span className="font-semibold">{r.author}</span> {r.body}
+            </div>
+          ))}
+          <div className="mt-2 flex gap-1">
+            <input
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder="Reply…"
+              className="min-w-0 flex-1 rounded-lg border border-line bg-transparent px-2 py-1.5 text-xs outline-none"
+            />
+            <button
+              className="rounded-lg bg-[var(--accent)] px-2 py-1.5 text-xs font-medium text-white"
+              onClick={() => {
+                if (!reply.trim()) return;
+                updateAnnotation(docId, a.id, {
+                  replies: [...a.replies, { id: uid("rep"), author: "You", body: reply.trim(), at: Date.now() }],
+                } as Partial<Annotation>);
+                setReply("");
+              }}
+            >
+              Reply
+            </button>
+          </div>
+          <div className="mt-2 flex justify-between">
+            <button
+              className="text-xs opacity-70 hover:opacity-100"
+              onClick={() => updateAnnotation(docId, a.id, { resolved: !a.resolved } as Partial<Annotation>)}
+            >
+              {a.resolved ? "Reopen" : "Resolve"}
+            </button>
+            <button className="text-xs text-rose-500 hover:underline" onClick={onDelete}>
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WYSIWYG text block (HTML contenteditable overlay).
+// ---------------------------------------------------------------------------
+const FONT_FAMILY: Record<TextAnno["font"], string> = {
+  Helvetica: "var(--font-sans), Arial, Helvetica, sans-serif",
+  TimesRoman: "'Times New Roman', Times, serif",
+  Courier: "'Courier New', Courier, monospace",
+};
+
+function TextBlock({
+  docId,
+  a,
+  x,
+  y,
+  zoom,
+  selected,
+  onSelect,
+}: {
+  docId: string;
+  a: TextAnno;
+  x: number;
+  y: number;
+  zoom: number;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const updateAnnotation = useStore((s) => s.updateAnnotation);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(a.text);
+  useEffect(() => setValue(a.text), [a.text]);
+
+  const commit = () => {
+    setEditing(false);
+    if (value !== a.text) updateAnnotation(docId, a.id, { text: value } as Partial<Annotation>);
+  };
+
+  return (
+    <div className="absolute" style={{ left: x, top: y, zIndex: 20, maxWidth: "80%" }}>
+      {editing ? (
+        <textarea
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          rows={Math.max(1, value.split("\n").length)}
+          className="resize-none rounded border border-[var(--accent)] bg-white/95 p-1 leading-tight outline-none"
+          style={{
+            color: a.color,
+            fontSize: a.fontSize * zoom,
+            fontFamily: FONT_FAMILY[a.font],
+            fontWeight: a.bold ? 700 : 400,
+            minWidth: 120,
+          }}
+        />
+      ) : (
+        <div
+          role="button"
+          tabIndex={0}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onSelect();
+          }}
+          onDoubleClick={() => setEditing(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !editing) setEditing(true);
+          }}
+          className={cn(
+            "cursor-text whitespace-pre-wrap rounded px-1",
+            selected && "ring-2 ring-[var(--accent)]",
+          )}
+          style={{
+            color: a.color,
+            fontSize: a.fontSize * zoom,
+            fontFamily: FONT_FAMILY[a.font],
+            fontWeight: a.bold ? 700 : 400,
+          }}
+        >
+          {a.text || "Text"}
+        </div>
+      )}
+    </div>
+  );
+}
