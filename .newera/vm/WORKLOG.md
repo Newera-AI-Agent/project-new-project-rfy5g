@@ -14,3 +14,4 @@ Durable session memory for this VM job chain. Each line is one step or wind-down
 - [2026-10-19T11:33:03.123Z | VM 1/3] VERIFIED green: npx tsc --noEmit 2>&1 | head -40
 - [2026-10-19T11:34:13.258Z | VM 1/3] VERIFIED green: npx tsc --noEmit 2>&1 | head -40
 - [2026-10-19T11:34:33.627Z | VM 1/3] VERIFIED green: npm run build 2>&1 | tail -50
+- [2026-10-19T11:41:50.260Z | VM 1/3] VERIFIED green: ls node_modules >/dev/null 2>&1 && echo 'node_modules present' || echo 'NO node_modules'; npx tsc --noEmit 2>&1 | head -30; echo '--- tsc exit:' $?

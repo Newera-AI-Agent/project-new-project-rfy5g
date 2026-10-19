@@ -93,9 +93,16 @@ def make_icon(px):
         )
         ly += S * 0.062
 
-    # pencil dipping into the lower-right of the page
-    p = pencil(int(S * 0.62))
-    p = p.rotate(-38, expand=True, resample=Image.BICUBIC)
+    # inner crease under the folded corner so the fold reads as paper
+    d.line([(x1 - c, y0), (x1 - c, y0 + c), (x1, y0 + c)], fill=(147, 197, 253, 255), width=max(1, int(S * 0.006)))
+
+    # pencil dipping into the lower-right of the page (with a soft cast shadow)
+    p = pencil(int(S * 0.62)).rotate(-38, expand=True, resample=Image.BICUBIC)
+    sh = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    sh.alpha_composite(p, (int(S * 0.40) + int(S * 0.012), int(S * 0.60) + int(S * 0.014)))
+    sh = sh.filter(ImageFilter.GaussianBlur(S * 0.012))
+    sh.putalpha(sh.getchannel("A").point(lambda a: int(a * 0.45)))
+    icon.alpha_composite(sh)
     icon.alpha_composite(p, (int(S * 0.40), int(S * 0.60)))
 
     return icon
@@ -129,23 +136,25 @@ def make_og():
     f_brand = font("Lato-Black.ttf", 40)
     d.text((238, 112), "PdfEditz", font=f_brand, fill=(255, 255, 255, 255))
 
-    d.text((96, 268), "Edit PDFs right", font=font("Lato-Black.ttf", 108), fill=(255, 255, 255, 255))
-    d.text((96, 388), "in your browser.", font=font("Lato-Black.ttf", 108), fill=(96, 165, 250, 255))
+    d.text((96, 250), "Edit PDFs right", font=font("Lato-Black.ttf", 92), fill=(255, 255, 255, 255))
+    d.text((96, 360), "in your browser.", font=font("Lato-Black.ttf", 92), fill=(96, 165, 250, 255))
 
-    d.text((96, 548), "Annotate, redact, sign, merge & compress.", font=font("Lato-Medium.ttf", 44), fill=(203, 213, 225, 255))
-    d.text((96, 606), "Nothing is ever uploaded \u2014 100% client-side.", font=font("Lato-Medium.ttf", 44), fill=(203, 213, 225, 255))
+    d.text((96, 516), "Annotate, redact, sign, merge & compress.", font=font("Lato-Medium.ttf", 38), fill=(203, 213, 225, 255))
+    d.text((96, 568), "Nothing is ever uploaded \u2014 100% client-side.", font=font("Lato-Medium.ttf", 38), fill=(203, 213, 225, 255))
 
-    # pills
-    px = 96
-    for label in ("100% client-side", "Mobile first", "Works offline"):
-        fw = font("Lato-Semibold.ttf", 34)
+    # pills (wrap into rows so nothing can overflow the text column)
+    px, py = 96, 664
+    for label in ("100% client-side", "Mobile first", "Works offline", "Merge & split"):
+        fw = font("Lato-Semibold.ttf", 28)
         tw = d.textlength(label, font=fw)
-        d.rounded_rectangle([px, 700, px + tw + 56, 700 + 66], radius=33, fill=(37, 99, 235, 60), outline=(59, 130, 246, 160), width=2)
-        d.text((px + 28, 700 + 16), label, font=fw, fill=(191, 219, 254, 255))
-        px += tw + 88
+        if px + tw + 48 > 830:
+            px, py = 96, py + 74
+        d.rounded_rectangle([px, py, px + tw + 48, py + 54], radius=27, fill=(37, 99, 235, 60), outline=(59, 130, 246, 160), width=2)
+        d.text((px + 24, py + 12), label, font=fw, fill=(191, 219, 254, 255))
+        px += tw + 74
 
     # mock editor window
-    wx0, wy0, wx1, wy1 = 838, 190, 1462, 890
+    wx0, wy0, wx1, wy1 = 908, 176, 1462, 884
     win_shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ImageDraw.Draw(win_shadow).rounded_rectangle([wx0, wy0 + 18, wx1, wy1 + 18], radius=26, fill=(2, 6, 23, 170))
     img.alpha_composite(win_shadow.filter(ImageFilter.GaussianBlur(28)))
