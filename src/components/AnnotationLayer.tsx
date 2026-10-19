@@ -250,8 +250,9 @@ export default function AnnotationLayer({ docId, pageIndex, width, height, zoom 
       const dx = p.x - d.start.x;
       const dy = p.y - d.start.y;
       d.start = p;
-      updateAnnotation(docId, d.base.id, move(d.base, dx, dy));
-      d.base = move(d.base, dx, dy);
+      const patch = move(d.base, dx, dy);
+      updateAnnotation(docId, d.base.id, patch);
+      d.base = { ...d.base, ...patch } as Annotation;
       return;
     }
   };
@@ -364,7 +365,6 @@ export default function AnnotationLayer({ docId, pageIndex, width, height, zoom 
       )}
 
       {all.length === 0 && tool === "select" && <span className="hidden" aria-hidden />}
-      {toast ? null : null}
     </div>
   );
 }
